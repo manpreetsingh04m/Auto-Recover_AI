@@ -1,7 +1,7 @@
 const Invoice = require("../models/Invoice");
 const AuditLog = require("../models/AuditLog");
 const { AiDecisionSchema } = require("../schemas/aiDecision");
-const { getAiDecision } = require("./geminiClient");
+const { getAiDecision, sleep } = require("./aiClient");
 const {
   CONFIDENCE_THRESHOLD,
   MAX_RETRIES,
@@ -254,10 +254,12 @@ async function fetchRecoverableInvoices() {
  */
 async function runRecoveryBatch() {
   const invoices = await fetchRecoverableInvoices();
+  const delayMs = Number(process.env.BATCH_DELAY_MS || 1500);
   console.log(`[recovery] batch start — ${invoices.length} recoverable invoices`);
 
   const results = [];
-  for (const invoice of invoices) {
+  for (let i = 0; i < invoices.length; i += 1) {
+    const invoice = invoices[i];
     try {
       const result = await processInvoice(invoice);
       results.push(result);
@@ -269,6 +271,10 @@ async function runRecoveryBatch() {
         status: "BLOCKED_BY_GUARDRAIL",
         error: err.message,
       });
+    }
+
+    if (i < invoices.length - 1 && delayMs > 0) {
+      await sleep(delayMs);
     }
   }
 

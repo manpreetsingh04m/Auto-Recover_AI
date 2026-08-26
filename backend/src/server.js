@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { connectDb } = require("./config/db");
+const apiRouter = require("./routes/api");
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
@@ -14,8 +15,15 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "auto-recover-ai",
-    phase: 2,
+    phase: 3,
   });
+});
+
+app.use("/api", apiRouter);
+
+app.use((err, _req, res, _next) => {
+  console.error("[server] unhandled", err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 async function start() {
