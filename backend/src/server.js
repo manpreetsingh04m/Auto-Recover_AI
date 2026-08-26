@@ -14,7 +14,7 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "auto-recover-ai",
-    phase: 1,
+    phase: 2,
   });
 });
 
