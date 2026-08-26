@@ -3,13 +3,15 @@ const Invoice = require("../models/Invoice");
 const AuditLog = require("../models/AuditLog");
 const { runRecoveryBatch } = require("../services/recoveryEngine");
 const { createInvoiceSchema, bulkCreateSchema } = require("../schemas/invoice");
+const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
+router.use(authRequired);
 
 let batchRunning = false;
 
 async function nextInvoiceId() {
-  const latest = await Invoice.findOne({})
+  const latest = await Invoice.findOne({ invoiceId: { $regex: /^INV-/ } })
     .sort({ invoiceId: -1 })
     .select("invoiceId")
     .lean();
@@ -26,6 +28,7 @@ function toInvoiceDoc(payload, invoiceId) {
   return {
     invoiceId,
     clientName: payload.clientName,
+    clientPhone: payload.clientPhone || null,
     amount: payload.amount,
     currency: payload.currency || "INR",
     status: payload.status || "OVERDUE",
@@ -39,9 +42,6 @@ function toInvoiceDoc(payload, invoiceId) {
   };
 }
 
-/**
- * GET /api/invoices?page=1&limit=20&status=
- */
 router.get("/invoices", async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
@@ -49,6 +49,14 @@ router.get("/invoices", async (req, res) => {
     const skip = (page - 1) * limit;
     const filter = {};
     if (req.query.status) filter.status = String(req.query.status);
+    if (req.query.q) {
+      const q = String(req.query.q).trim();
+      filter.$or = [
+        { invoiceId: new RegExp(q, "i") },
+        { clientName: new RegExp(q, "i") },
+        { clientPhone: new RegExp(q, "i") },
+      ];
+    }
 
     const [total, data] = await Promise.all([
       Invoice.countDocuments(filter),
@@ -68,10 +76,25 @@ router.get("/invoices", async (req, res) => {
   }
 });
 
-/**
- * POST /api/invoices
- * Merchant / integration creates one invoice for recovery.
- */
+router.get("/invoices/:invoiceId", async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({ invoiceId: req.params.invoiceId }).lean();
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    const audits = await AuditLog.find({ invoiceId: invoice.invoiceId })
+      .sort({ timestamp: -1 })
+      .limit(20)
+      .lean();
+
+    res.json({ ok: true, invoice, audits });
+  } catch (err) {
+    console.error("[api/invoices/:id]", err);
+    res.status(500).json({ error: "Failed to fetch invoice", detail: err.message });
+  }
+});
+
 router.post("/invoices", async (req, res) => {
   try {
     const parsed = createInvoiceSchema.safeParse(req.body);
@@ -96,10 +119,6 @@ router.post("/invoices", async (req, res) => {
   }
 });
 
-/**
- * POST /api/invoices/bulk
- * Import many invoices at once (CSV/ERP sync style).
- */
 router.post("/invoices/bulk", async (req, res) => {
   try {
     const parsed = bulkCreateSchema.safeParse(req.body);
@@ -137,9 +156,6 @@ router.post("/invoices/bulk", async (req, res) => {
   }
 });
 
-/**
- * GET /api/metrics
- */
 router.get("/metrics", async (_req, res) => {
   try {
     const [statusAgg, auditAgg, invoiceCounts] = await Promise.all([
@@ -178,7 +194,6 @@ router.get("/metrics", async (_req, res) => {
     const auditBlocked = auditByStatus.BLOCKED_BY_GUARDRAIL || 0;
     const auditTotal = auditSuccess + auditBlocked;
     const successRate = auditTotal === 0 ? 0 : Number((auditSuccess / auditTotal).toFixed(4));
-    const falsePositives = auditBlocked;
 
     const actionBreakdown = await AuditLog.aggregate([
       { $group: { _id: "$executedAction", count: { $sum: 1 } } },
@@ -191,7 +206,7 @@ router.get("/metrics", async (_req, res) => {
       recoverableCount,
       invoiceCount: invoiceCounts,
       successRate,
-      falsePositives,
+      falsePositives: auditBlocked,
       audit: {
         total: auditTotal,
         success: auditSuccess,
@@ -214,9 +229,6 @@ router.get("/metrics", async (_req, res) => {
   }
 });
 
-/**
- * GET /api/audit-logs?page=1&limit=20&status=&invoiceId=&action=
- */
 router.get("/audit-logs", async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
@@ -250,9 +262,6 @@ router.get("/audit-logs", async (req, res) => {
   }
 });
 
-/**
- * POST /api/run-batch
- */
 router.post("/run-batch", async (_req, res) => {
   if (batchRunning) {
     return res.status(409).json({

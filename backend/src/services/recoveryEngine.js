@@ -2,6 +2,7 @@ const Invoice = require("../models/Invoice");
 const AuditLog = require("../models/AuditLog");
 const { AiDecisionSchema } = require("../schemas/aiDecision");
 const { getAiDecision, sleep } = require("./aiClient");
+const { sendWhatsAppReminder } = require("./whatsapp");
 const {
   CONFIDENCE_THRESHOLD,
   MAX_RETRIES,
@@ -11,6 +12,7 @@ function toInvoiceContext(invoice) {
   return {
     invoiceId: invoice.invoiceId,
     clientName: invoice.clientName,
+    clientPhone: invoice.clientPhone || null,
     amount: invoice.amount,
     currency: invoice.currency,
     status: invoice.status,
@@ -24,26 +26,36 @@ function toInvoiceContext(invoice) {
   };
 }
 
-function simulateAction(action, invoice, message) {
+async function executeAction(action, invoice, message) {
   const label = `[action:${action}] ${invoice.invoiceId}`;
+
   switch (action) {
-    case "SEND_WHATSAPP_REMINDER":
-      console.log(`${label} → WhatsApp API (simulated): ${message}`);
-      break;
+    case "SEND_WHATSAPP_REMINDER": {
+      const result = await sendWhatsAppReminder({
+        to: invoice.clientPhone,
+        body: message,
+        invoiceId: invoice.invoiceId,
+      });
+      console.log(
+        `${label} → WhatsApp (${result.mode}${result.ok ? "" : " FAILED"}): ${result.detail}`
+      );
+      return result;
+    }
     case "RETRY_CARD":
       console.log(`${label} → Card gateway retry (simulated)`);
-      break;
+      return { ok: true, mode: "simulated", detail: "Card retry simulated" };
     case "SEND_PAYMENT_LINK":
       console.log(`${label} → Payment link dispatch (simulated): ${message}`);
-      break;
+      return { ok: true, mode: "simulated", detail: "Payment link simulated" };
     case "PAUSE_PROMISE_TO_PAY":
       console.log(`${label} → Outreach paused until PTP window`);
-      break;
+      return { ok: true, mode: "internal", detail: "PTP pause recorded" };
     case "ESCALATE_TO_ADMIN":
       console.log(`${label} → Queued for human review`);
-      break;
+      return { ok: true, mode: "internal", detail: "Escalated to admin queue" };
     default:
       console.log(`${label} → no-op`);
+      return { ok: false, mode: "none", detail: "Unknown action" };
   }
 }
 
@@ -135,7 +147,7 @@ async function processInvoice(invoice) {
     };
     const guardrailReason = `retryCount ${invoice.retryCount} >= MAX_RETRIES ${MAX_RETRIES}`;
 
-    simulateAction("ESCALATE_TO_ADMIN", invoice, decision.generated_message);
+    await executeAction("ESCALATE_TO_ADMIN", invoice, decision.generated_message);
     await appendHistory(invoice, `GUARDRAIL: ${guardrailReason} → ESCALATE_TO_ADMIN`);
 
     const audit = await writeAudit({
@@ -178,7 +190,7 @@ async function processInvoice(invoice) {
       guardrailReason: err.message,
     });
 
-    simulateAction("ESCALATE_TO_ADMIN", invoice, "AI provider error");
+    await executeAction("ESCALATE_TO_ADMIN", invoice, "AI provider error");
     await appendHistory(invoice, `GUARDRAIL: AI error → ESCALATE_TO_ADMIN (${err.message})`);
 
     return {
@@ -199,7 +211,7 @@ async function processInvoice(invoice) {
     gated.allowed || action === "ESCALATE_TO_ADMIN" || action === "PAUSE_PROMISE_TO_PAY";
 
   if (mayOutreach) {
-    simulateAction(action, invoice, gated.decision.generated_message);
+    const delivery = await executeAction(action, invoice, gated.decision.generated_message);
 
     if (gated.allowed && action === "RETRY_CARD") {
       invoice.retryCount = Math.min(MAX_RETRIES, (invoice.retryCount || 0) + 1);
@@ -212,9 +224,14 @@ async function processInvoice(invoice) {
           ? "EMAIL"
           : "SYSTEM";
 
+    const deliveryNote =
+      action === "SEND_WHATSAPP_REMINDER"
+        ? ` | WA:${delivery.mode}${delivery.ok ? "" : ":fail"} ${delivery.detail || ""}`
+        : "";
+
     await appendHistory(
       invoice,
-      `${gated.status === "SUCCESS" ? "EXECUTED" : "GUARDRAIL"}: ${action} — ${gated.decision.root_cause}`,
+      `${gated.status === "SUCCESS" ? "EXECUTED" : "GUARDRAIL"}: ${action} — ${gated.decision.root_cause}${deliveryNote}`,
       channel
     );
   }
@@ -298,4 +315,5 @@ module.exports = {
   runRecoveryBatch,
   applyGuardrails,
   toInvoiceContext,
+  executeAction,
 };

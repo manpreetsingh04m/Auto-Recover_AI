@@ -3,6 +3,7 @@ require("dotenv").config();
 const { connectDb, disconnectDb } = require("./config/db");
 const Invoice = require("./models/Invoice");
 const AuditLog = require("./models/AuditLog");
+const User = require("./models/User");
 
 const FIRST_NAMES = [
   "Aarav", "Diya", "Kabir", "Ananya", "Rohan", "Meera", "Ishaan", "Priya",
@@ -44,8 +45,11 @@ function buildBaseInvoice(index, overrides = {}) {
     (status === "OVERDUE" || status === "FAILED" ? 1 + (index % 40) : 0);
 
   return {
-    invoiceId: `INV-${String(index + 1).padStart(4, "0")}`,
-    clientName: `${company} / ${contact}`,
+    invoiceId: overrides.invoiceId || `INV-${String(index + 1).padStart(4, "0")}`,
+    clientName: overrides.clientName || `${company} / ${contact}`,
+    clientPhone:
+      overrides.clientPhone ||
+      `+9198${String(10000000 + (index * 137) % 89999999).padStart(8, "0")}`,
     amount: overrides.amount ?? 15000 + (index % 20) * 4750,
     currency: "INR",
     status,
@@ -156,6 +160,21 @@ async function seed() {
 
   await Promise.all([Invoice.deleteMany({}), AuditLog.deleteMany({})]);
   const docs = await Invoice.insertMany(syntheticBatch());
+
+  const email = "merchant@autorecover.ai";
+  const password = "Recover@123";
+  let user = await User.findOne({ email });
+  if (!user) {
+    user = await User.create({
+      name: "Demo Merchant",
+      email,
+      passwordHash: await User.hashPassword(password),
+      role: "merchant",
+    });
+    console.log(`[seed] created merchant user ${email} / ${password}`);
+  } else {
+    console.log(`[seed] merchant user already exists: ${email}`);
+  }
 
   const counts = docs.reduce((acc, inv) => {
     acc[inv.status] = (acc[inv.status] || 0) + 1;

@@ -19,6 +19,7 @@ const invoiceSchema = new mongoose.Schema(
   {
     invoiceId: { type: String, required: true, unique: true, index: true },
     clientName: { type: String, required: true },
+    clientPhone: { type: String, default: null },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "INR" },
     status: { type: String, enum: INVOICE_STATUSES, required: true, index: true },

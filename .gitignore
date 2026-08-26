@@ -7,3 +7,4 @@ build/
 .vite/
 .next/
 coverage/
+frontend/.env.local

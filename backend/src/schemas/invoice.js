@@ -11,6 +11,7 @@ const historyItemSchema = z.object({
 const createInvoiceSchema = z.object({
   invoiceId: z.string().min(1).optional(),
   clientName: z.string().min(1),
+  clientPhone: z.string().min(8).optional().nullable(),
   amount: z.number().positive(),
   currency: z.string().default("INR"),
   status: z.enum(INVOICE_STATUSES).default("OVERDUE"),
