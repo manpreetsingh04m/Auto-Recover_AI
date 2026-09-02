@@ -9,12 +9,14 @@ STRICT RULES:
 1. Respond with ONLY a valid JSON object — no markdown, no code fences, no extra text.
 2. recommended_action MUST be exactly one of: ${RECOVERY_ACTIONS.join(", ")}
 3. confidence_score must be a number between 0 and 1 reflecting how sure you are.
-4. If fraud is suspected, amount is extreme, or context is ambiguous → use ESCALATE_TO_ADMIN with high confidence.
-5. If the client already promised to pay (promiseToPayUntil in the future, or history says "will pay next week") → PAUSE_PROMISE_TO_PAY.
-6. If card is expired → SEND_PAYMENT_LINK (do not RETRY_CARD on an expired card).
-7. If retryCount is already high or card retries keep failing → prefer ESCALATE_TO_ADMIN or SEND_PAYMENT_LINK over another RETRY_CARD.
-8. generated_message should be a short Hinglish or English outreach message suitable for WhatsApp/email when the action involves messaging; otherwise a short internal note.
-9. Never invent payment methods, bank details, or actions outside the enum.
+4. recovery_probability must be an integer from 0 to 100 — your estimate of how likely this invoice will be recovered based on payment history, delay duration, client behavior, and context.
+5. If fraud is suspected, amount is extreme, or context is ambiguous → use ESCALATE_TO_ADMIN with high confidence.
+6. If the client already promised to pay (promiseToPayUntil in the future, or history says "will pay next week") → PAUSE_PROMISE_TO_PAY.
+7. If card is expired → SEND_PAYMENT_LINK (do not RETRY_CARD on an expired card).
+8. If retryCount is already high or card retries keep failing → prefer ESCALATE_TO_ADMIN or SEND_PAYMENT_LINK over another RETRY_CARD.
+9. generated_message should be a short Hinglish or English outreach message suitable for WhatsApp/email when the action involves messaging; otherwise a short internal note. Do not embed payment URLs — the system appends a Razorpay link automatically.
+10. Only output TRIGGER_AI_VOICE_CALL if invoice amount is greater than ₹50,000 AND severely overdue (typically 30+ days), OR if the client has ignored previous WhatsApp/text reminders in history. Never use voice for fraud-flagged invoices.
+11. Never invent payment methods, bank details, or actions outside the enum.
 
 JSON shape:
 {
@@ -22,6 +24,7 @@ JSON shape:
   "recommended_action": "ENUM_VALUE",
   "generated_message": "string",
   "confidence_score": 0.0,
+  "recovery_probability": 0,
   "reasoning": "string"
 }`;
 
@@ -43,13 +46,28 @@ function extractJson(text) {
   return JSON.parse(candidate.slice(start, end + 1));
 }
 
+function estimateRecoveryProbability(invoice) {
+  if (invoice.suspectedFraud) return 12;
+  if (invoice.promiseToPayUntil && new Date(invoice.promiseToPayUntil) > new Date()) return 78;
+
+  let score = 72;
+  score -= Math.min(40, (invoice.daysOverdue || 0) * 1.2);
+  score -= (invoice.retryCount || 0) * 8;
+  if (invoice.paymentMethod === "BANK_TRANSFER") score += 5;
+  if (invoice.cardExpiry && new Date(invoice.cardExpiry) < new Date()) score -= 15;
+  return Math.max(5, Math.min(95, Math.round(score)));
+}
+
 function heuristicDecision(invoice) {
+  const recovery_probability = estimateRecoveryProbability(invoice);
+
   if (invoice.suspectedFraud) {
     return {
       root_cause: "Suspected fraudulent / high-risk card transaction",
       recommended_action: "ESCALATE_TO_ADMIN",
       generated_message: "Fraud flag set — halt outreach and route to compliance review.",
       confidence_score: 0.96,
+      recovery_probability,
       reasoning: "Issuer/risk flag present; automated collection is unsafe.",
     };
   }
@@ -60,6 +78,7 @@ function heuristicDecision(invoice) {
       recommended_action: "PAUSE_PROMISE_TO_PAY",
       generated_message: "PTP active — pause reminders until the promised date.",
       confidence_score: 0.93,
+      recovery_probability,
       reasoning: "Client committed to pay within the PTP window; outreach would be premature.",
     };
   }
@@ -69,8 +88,9 @@ function heuristicDecision(invoice) {
       root_cause: "Saved card expired",
       recommended_action: "SEND_PAYMENT_LINK",
       generated_message:
-        `Hi ${invoice.clientName.split(" / ")[0]}, your card on file seems expired. Fresh payment link: https://pay.example/inv/${invoice.invoiceId}`,
+        `Hi ${invoice.clientName.split(" / ")[0]}, aapka card expire ho gaya lagta hai. Please use the payment link below for invoice ${invoice.invoiceId} (₹${invoice.amount}).`,
       confidence_score: 0.91,
+      recovery_probability,
       reasoning: "Retrying an expired card will fail; send a fresh payment link instead.",
     };
   }
@@ -82,6 +102,7 @@ function heuristicDecision(invoice) {
       generated_message:
         `Namaste, invoice ${invoice.invoiceId} for ₹${invoice.amount} is ${invoice.daysOverdue} days overdue. Please confirm payment timeline?`,
       confidence_score: 0.88,
+      recovery_probability,
       reasoning: "Extended delinquency warrants a tailored reminder before escalation.",
     };
   }
@@ -92,6 +113,7 @@ function heuristicDecision(invoice) {
       recommended_action: "RETRY_CARD",
       generated_message: `Scheduling card retry for ${invoice.invoiceId} (attempt ${(invoice.retryCount || 0) + 1}).`,
       confidence_score: 0.86,
+      recovery_probability,
       reasoning: "Recent card failure with retries remaining; soft retry is appropriate.",
     };
   }
@@ -102,6 +124,7 @@ function heuristicDecision(invoice) {
     generated_message:
       `Hi, gentle reminder for invoice ${invoice.invoiceId} (₹${invoice.amount}). Pay karne ka plan bata doge?`,
     confidence_score: 0.82,
+    recovery_probability,
     reasoning: "Insufficient signal for a stronger action; soft reminder with moderate confidence.",
   };
 }

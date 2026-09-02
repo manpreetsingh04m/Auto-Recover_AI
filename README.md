@@ -1,8 +1,8 @@
-# Auto-Recover AI
+# Revive AI (Auto-Recover AI)
 
-**Autonomous AI Revenue Recovery** for B2B merchants — built for the **Razorpay Buildathon**.
+**Revive AI** — autonomous, bounded **AI revenue recovery** for B2B merchants. Built for the **Razorpay Buildathon**.
 
-Detects overdue invoices and failed payments, diagnoses root cause with an LLM, and executes only **bounded** recovery actions with Zod validation, confidence guardrails, JWT-protected APIs, and an immutable audit trail.
+Detects overdue invoices and failed payments, diagnoses root cause with an LLM, predicts recovery probability, generates **Razorpay payment links**, and executes only **bounded** recovery actions (WhatsApp, voice fallback, card retry) with Zod validation, confidence guardrails, JWT-protected APIs, and an immutable audit trail.
 
 Merchant UI follows a Razorpay-inspired fintech console (navy `#012652`, blue `#0D94FB`).
 
@@ -16,18 +16,21 @@ Merchants lose cash to failed cards, overdue bank transfers, promise-to-pay dela
 
 1. Ingest invoices (`FAILED` / `OVERDUE`) via seed, IBM AR CSV, API, or dashboard  
 2. Run a **batch recovery engine** over the ledger  
-3. LLM returns structured JSON (root cause, action, message, confidence)  
+3. LLM returns structured JSON (root cause, action, message, confidence, **recovery_probability**)  
 4. **Guardrails:** Zod parse + confidence ≥ **0.85** + max **3** card retries — otherwise `ESCALATE_TO_ADMIN`  
-5. Log every decision to **AuditLog**  
-6. Merchant dashboard + full invoices page behind JWT auth  
+5. **Razorpay Payment Links** appended to WhatsApp / payment-link outreach  
+6. **AI Voice fallback** (Bland.ai) for high-value, severely overdue invoices  
+7. Log every decision to **AuditLog**  
+8. Merchant dashboard + full invoices page behind JWT auth  
 
 ### Allowed actions
 
 | Action | Behavior |
 |--------|----------|
-| `SEND_WHATSAPP_REMINDER` | WhatsApp reminder (simulated / Twilio) |
+| `SEND_WHATSAPP_REMINDER` | WhatsApp reminder + Razorpay link (Twilio or simulated) |
 | `RETRY_CARD` | Simulated card retry (capped at 3) |
-| `SEND_PAYMENT_LINK` | Simulated payment-link dispatch |
+| `SEND_PAYMENT_LINK` | Razorpay payment link in message |
+| `TRIGGER_AI_VOICE_CALL` | Bland.ai Hinglish voice call (simulated if no API key) |
 | `PAUSE_PROMISE_TO_PAY` | Pause outreach for active PTP |
 | `ESCALATE_TO_ADMIN` | Queue for human review |
 
@@ -241,6 +244,9 @@ vercel          # first deploy — note the production URL, e.g. https://auto-re
 | `GROQ_MODEL` | `openai/gpt-oss-20b` |
 | `CONFIDENCE_THRESHOLD` | `0.85` |
 | `MAX_RETRIES` | `3` |
+| `RAZORPAY_KEY_ID` | For real payment links |
+| `RAZORPAY_KEY_SECRET` | For real payment links |
+| `BLAND_API_KEY` | Optional voice agent |
 
 MongoDB Atlas → **Network Access** → allow `0.0.0.0/0` (or Vercel IPs) so serverless can connect.
 

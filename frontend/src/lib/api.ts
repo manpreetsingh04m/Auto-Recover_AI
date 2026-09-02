@@ -1,4 +1,15 @@
-import type { AuditLog, BatchResult, Invoice, Metrics, Paginated } from "./types";
+import type {
+  AuditLog,
+  BatchResult,
+  ConversationItem,
+  Invoice,
+  Metrics,
+  Paginated,
+  RecoverResult,
+  RecoveryInsightsResponse,
+  RecoveryQueueItem,
+  VoiceCallResponse,
+} from "./types";
 import type { AuthUser } from "./auth";
 import { clearSession, getToken } from "./auth";
 
@@ -95,4 +106,26 @@ export const api = {
     request<BatchResult>("/api/run-batch", {
       method: "POST",
     }),
+  recoveryInsights: (invoiceId: string) =>
+    request<RecoveryInsightsResponse>(
+      `/api/invoices/${encodeURIComponent(invoiceId)}/recovery-insights`
+    ),
+  recoverInvoice: (invoiceId: string) =>
+    request<RecoverResult>(`/api/invoices/${encodeURIComponent(invoiceId)}/recover`, {
+      method: "POST",
+    }),
+  simulatePayment: (invoiceId: string) =>
+    request<{ ok: boolean; message: string; invoice: Invoice }>(
+      `/api/invoices/${encodeURIComponent(invoiceId)}/simulate-payment`,
+      { method: "POST" }
+    ),
+  voiceCall: (invoiceId: string) =>
+    request<VoiceCallResponse>(
+      `/api/invoices/${encodeURIComponent(invoiceId)}/voice-call`,
+      { method: "POST" }
+    ),
+  recoveryQueue: () =>
+    request<{ ok: boolean; data: RecoveryQueueItem[] }>("/api/recovery-queue"),
+  conversations: () =>
+    request<{ ok: boolean; data: ConversationItem[] }>("/api/conversations"),
 };

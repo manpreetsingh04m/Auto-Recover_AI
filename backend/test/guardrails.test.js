@@ -18,9 +18,22 @@ describe("AiDecisionSchema", () => {
       recommended_action: "SEND_PAYMENT_LINK",
       generated_message: "Please use this fresh link",
       confidence_score: 0.91,
+      recovery_probability: 72,
       reasoning: "Expired card cannot be retried",
     });
     assert.equal(parsed.success, true);
+  });
+
+  it("rejects recovery_probability outside 0-100", () => {
+    const parsed = AiDecisionSchema.safeParse({
+      root_cause: "x",
+      recommended_action: "SEND_PAYMENT_LINK",
+      generated_message: "hi",
+      confidence_score: 0.9,
+      recovery_probability: 101,
+      reasoning: "nope",
+    });
+    assert.equal(parsed.success, false);
   });
 
   it("rejects unknown actions", () => {
@@ -66,6 +79,7 @@ describe("applyGuardrails", () => {
           recommended_action: "SEND_WHATSAPP_REMINDER",
           generated_message: "pay please",
           confidence_score: 0.7,
+          recovery_probability: 45,
           reasoning: "guess",
         },
       },
@@ -73,6 +87,7 @@ describe("applyGuardrails", () => {
     );
     assert.equal(result.status, "BLOCKED_BY_GUARDRAIL");
     assert.equal(result.decision.recommended_action, "ESCALATE_TO_ADMIN");
+    assert.equal(result.decision.recovery_probability, 0);
   });
 
   it("allows high-confidence valid decisions", () => {
@@ -84,6 +99,7 @@ describe("applyGuardrails", () => {
           recommended_action: "PAUSE_PROMISE_TO_PAY",
           generated_message: "paused",
           confidence_score: 0.95,
+          recovery_probability: 82,
           reasoning: "client promised",
         },
       },
@@ -102,6 +118,7 @@ describe("applyGuardrails", () => {
           recommended_action: "RETRY_CARD",
           generated_message: "retry",
           confidence_score: 0.99,
+          recovery_probability: 60,
           reasoning: "again",
         },
       },

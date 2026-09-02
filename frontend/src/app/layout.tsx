@@ -9,8 +9,12 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Auto-Recover AI | Merchant Dashboard",
-  description: "AI revenue recovery agent — Razorpay-themed merchant console",
+  title: "Revive AI | Merchant Dashboard",
+  description: "Autonomous AI revenue recovery for B2B merchants",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

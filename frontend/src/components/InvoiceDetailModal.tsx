@@ -1,7 +1,7 @@
 "use client";
 
 import type { AuditLog, Invoice } from "@/lib/types";
-import { formatINR, formatTime, shortAction } from "@/lib/format";
+import { formatINR, formatTime, recoveryBadge, shortAction } from "@/lib/format";
 
 type Props = {
   invoice: Invoice | null;
@@ -137,18 +137,26 @@ export function InvoiceDetailModal({ invoice, audits, loading, onClose }: Props)
                       <tr>
                         <th>Time</th>
                         <th>Action</th>
+                        <th>Recovery</th>
                         <th>Conf.</th>
                         <th>Status</th>
                         <th>Reasoning</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {audits.map((a) => (
+                      {audits.map((a) => {
+                        const recovery = recoveryBadge(a.recoveryProbability);
+                        return (
                         <tr key={a._id}>
                           <td className="muted">{formatTime(a.timestamp)}</td>
                           <td>
                             <span className="pill action">
                               {shortAction(a.executedAction)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`pill recovery ${recovery.className}`}>
+                              {recovery.emoji} {recovery.label}
                             </span>
                           </td>
                           <td className="mono">
@@ -167,7 +175,8 @@ export function InvoiceDetailModal({ invoice, audits, loading, onClose }: Props)
                             {a.rootCause || a.aiReasoning}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

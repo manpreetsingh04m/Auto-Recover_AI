@@ -5,6 +5,7 @@ export type RecoveryAction =
   | "SEND_WHATSAPP_REMINDER"
   | "RETRY_CARD"
   | "SEND_PAYMENT_LINK"
+  | "TRIGGER_AI_VOICE_CALL"
   | "ESCALATE_TO_ADMIN"
   | "PAUSE_PROMISE_TO_PAY";
 
@@ -12,6 +13,7 @@ export type Metrics = {
   currency: string;
   totalRecovered: number;
   totalAtRisk: number;
+  expectedRecovery?: number;
   recoverableCount: number;
   invoiceCount: number;
   successRate: number;
@@ -29,6 +31,7 @@ export type AuditLog = {
   aiReasoning: string;
   executedAction: RecoveryAction;
   confidenceScore: number | null;
+  recoveryProbability?: number | null;
   status: AuditStatus;
   generatedMessage: string | null;
   rootCause: string | null;
@@ -76,4 +79,84 @@ export type BatchResult = {
     blocked: number;
     byAction: Record<string, number>;
   };
+};
+
+export type RecoveryInsights = {
+  riskScore: number;
+  recoveryProbability: number;
+  expectedRecoveryValue: number;
+  recommendedAction: RecoveryAction;
+  confidenceScore: number | null;
+  rootCause: string | null;
+  reasoning: string | null;
+  generatedMessage: string | null;
+  status: AuditStatus | null;
+  source: "audit" | "heuristic-preview";
+  auditId: string | null;
+  timestamp: string | null;
+};
+
+export type RecoveryInsightsResponse = {
+  ok: boolean;
+  invoice: Invoice;
+  insights: RecoveryInsights;
+  audits: AuditLog[];
+};
+
+export type RecoverResult = {
+  ok: boolean;
+  result: {
+    invoiceId: string;
+    executedAction: RecoveryAction;
+    status: AuditStatus;
+    confidenceScore: number | null;
+    recoveryProbability: number | null;
+    rootCause: string | null;
+    guardrailReason: string | null;
+    generatedMessage: string | null;
+    delivery: { ok: boolean; mode: string; detail?: string } | null;
+    auditId: string;
+    source: string;
+  };
+  invoice: Invoice;
+  insights: RecoveryInsights;
+};
+
+export type CallScriptLine = {
+  speaker: "system" | "agent" | "customer";
+  text: string;
+  delayMs: number;
+};
+
+export type VoiceCallResponse = {
+  ok: boolean;
+  call: {
+    ok: boolean;
+    mode: string;
+    callId: string | null;
+    detail: string;
+    phone: string | null;
+    clientName: string;
+    invoiceId: string;
+    amount: number;
+    script: CallScriptLine[];
+    promiseToPayDate?: string | null;
+  };
+  invoice: Invoice;
+};
+
+export type RecoveryQueueItem = {
+  invoice: Invoice;
+  insights: RecoveryInsights;
+};
+
+export type ConversationItem = {
+  invoiceId: string;
+  clientName: string;
+  amount: number;
+  at: string;
+  note: string;
+  source: string;
+  status?: string;
+  recoveryProbability?: number | null;
 };

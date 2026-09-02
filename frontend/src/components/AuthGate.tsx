@@ -1,28 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
+    const token = getToken();
+    if (!token) {
+      setRedirecting(true);
+      window.location.replace("/login");
       return;
     }
     setReady(true);
-  }, [router]);
+  }, []);
 
-  if (!ready) {
-    return (
-      <div className="login-shell">
-        <div className="muted">Checking session…</div>
-      </div>
-    );
+  if (ready) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="login-shell">
+      <div className="muted">
+        {redirecting ? "Redirecting to sign in…" : "Checking session…"}
+      </div>
+    </div>
+  );
 }

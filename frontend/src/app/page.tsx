@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import type { AuditLog, Invoice, Metrics } from "@/lib/types";
 import { AuthGate } from "@/components/AuthGate";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 import { KpiStrip } from "@/components/KpiStrip";
 import { RunBatchPanel } from "@/components/RunBatchPanel";
 import { AuditTable } from "@/components/AuditTable";
@@ -95,9 +95,7 @@ function DashboardInner() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-
+    <AppShell>
       <main className="main">
         <header className="topbar">
           <div>
@@ -174,7 +172,7 @@ function DashboardInner() {
         onClose={() => setModalOpen(false)}
         onSubmit={handleCreateInvoice}
       />
-    </div>
+    </AppShell>
   );
 }
 

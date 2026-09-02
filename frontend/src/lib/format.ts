@@ -23,3 +23,17 @@ export function shortAction(action: string) {
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+export function recoveryBadge(probability: number | null | undefined) {
+  if (probability == null || Number.isNaN(probability)) {
+    return { emoji: "—", label: "—", className: "recovery-unknown" };
+  }
+  const value = Math.round(probability);
+  if (value > 80) {
+    return { emoji: "🟢", label: `${value}%`, className: "recovery-high" };
+  }
+  if (value >= 50) {
+    return { emoji: "🟡", label: `${value}%`, className: "recovery-mid" };
+  }
+  return { emoji: "🔴", label: `${value}%`, className: "recovery-low" };
+}

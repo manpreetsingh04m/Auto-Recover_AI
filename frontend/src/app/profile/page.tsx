@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { AuthGate } from "@/components/AuthGate";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 import { api } from "@/lib/api";
 import { getToken, getUser, setSession, type AuthUser, updateStoredUser } from "@/lib/auth";
 
@@ -107,7 +107,7 @@ function ProfileInner() {
       });
       updateStoredUser(res.user);
       setForm(fromUser(res.user));
-      setToast({ type: "ok", text: "Merchant profile saved to database." });
+      setToast({ type: "ok", text: "Profile saved." });
     } catch (err) {
       setToast({
         type: "error",
@@ -119,16 +119,11 @@ function ProfileInner() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar />
+    <AppShell>
       <main className="main">
         <header className="topbar">
           <div>
             <h1>Merchant profile</h1>
-            <p>
-              Saved in MongoDB on the User document. AI outreach uses your preferred
-              language.
-            </p>
           </div>
         </header>
 
@@ -149,7 +144,6 @@ function ProfileInner() {
                 <strong>{form.businessName || form.name || "Merchant"}</strong>
                 <span className="muted">{email}</span>
               </div>
-              <span className="chip">Stored in DB</span>
             </div>
 
             <div className="form-grid">
@@ -257,13 +251,13 @@ function ProfileInner() {
 
             <div className="profile-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? "Saving…" : "Save profile to DB"}
+                {saving ? "Saving…" : "Save"}
               </button>
             </div>
           </form>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }
 

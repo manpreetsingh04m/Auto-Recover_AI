@@ -44,7 +44,7 @@ export function InvoicePanel({ invoices, onAdd }: Props) {
               invoices.map((inv) => (
                 <tr key={inv._id}>
                   <td className="mono">
-                    <Link href={`/invoices`}>{inv.invoiceId}</Link>
+                    <Link href={`/recovery/${inv.invoiceId}`}>{inv.invoiceId}</Link>
                   </td>
                   <td>{inv.clientName}</td>
                   <td className="mono">{formatINR(inv.amount)}</td>

@@ -4,6 +4,11 @@ const { AiDecisionSchema } = require("../schemas/aiDecision");
 const { getAiDecision, sleep } = require("./aiClient");
 const { sendWhatsAppReminder } = require("./whatsapp");
 const {
+  generatePaymentLink,
+  appendPaymentLinkToMessage,
+} = require("./razorpayLinks");
+const { triggerVoiceAgent, isVoiceCallEligible } = require("./voiceAgent");
+const {
   CONFIDENCE_THRESHOLD,
   MAX_RETRIES,
 } = require("../config/constants");
@@ -44,9 +49,17 @@ async function executeAction(action, invoice, message) {
     case "RETRY_CARD":
       console.log(`${label} → Card gateway retry (simulated)`);
       return { ok: true, mode: "simulated", detail: "Card retry simulated" };
-    case "SEND_PAYMENT_LINK":
-      console.log(`${label} → Payment link dispatch (simulated): ${message}`);
-      return { ok: true, mode: "simulated", detail: "Payment link simulated" };
+    case "SEND_PAYMENT_LINK": {
+      console.log(`${label} → Payment link dispatch: ${message}`);
+      return { ok: true, mode: "razorpay", detail: "Payment link included in message" };
+    }
+    case "TRIGGER_AI_VOICE_CALL": {
+      const result = await triggerVoiceAgent(invoice);
+      console.log(
+        `${label} → Voice (${result.mode}${result.ok ? "" : " FAILED"}): ${result.detail}`
+      );
+      return result;
+    }
     case "PAUSE_PROMISE_TO_PAY":
       console.log(`${label} → Outreach paused until PTP window`);
       return { ok: true, mode: "internal", detail: "PTP pause recorded" };
@@ -56,6 +69,30 @@ async function executeAction(action, invoice, message) {
     default:
       console.log(`${label} → no-op`);
       return { ok: false, mode: "none", detail: "Unknown action" };
+  }
+}
+
+async function enrichOutboundMessage(action, invoice, message, allowed) {
+  if (!allowed) return message;
+  if (action !== "SEND_PAYMENT_LINK" && action !== "SEND_WHATSAPP_REMINDER") {
+    return message;
+  }
+
+  try {
+    const link = await generatePaymentLink(invoice);
+    if (!link.ok || !link.short_url) {
+      console.warn(
+        `[recovery] payment link skipped for ${invoice.invoiceId}: ${link.detail || "unavailable"}`
+      );
+      return message;
+    }
+    return appendPaymentLinkToMessage(message, link.short_url);
+  } catch (err) {
+    console.error(
+      `[recovery] payment link enrichment failed for ${invoice.invoiceId}`,
+      err.message
+    );
+    return message;
   }
 }
 
@@ -86,6 +123,7 @@ function applyGuardrails(parseResult, invoice) {
         recommended_action: "ESCALATE_TO_ADMIN",
         generated_message: `Max retries (${MAX_RETRIES}) exhausted for ${invoice.invoiceId}.`,
         confidence_score: 1,
+        recovery_probability: 0,
         reasoning: "Hard guardrail: automated recovery halted after max retries.",
       },
       status: "BLOCKED_BY_GUARDRAIL",
@@ -101,6 +139,7 @@ function applyGuardrails(parseResult, invoice) {
         recommended_action: "ESCALATE_TO_ADMIN",
         generated_message: "AI response failed schema validation — escalating.",
         confidence_score: 0,
+        recovery_probability: 0,
         reasoning: parseResult.error.issues
           .map((i) => `${i.path.join(".")}: ${i.message}`)
           .join("; "),
@@ -112,14 +151,47 @@ function applyGuardrails(parseResult, invoice) {
 
   const decision = parseResult.data;
 
+  function blockedEscalationDecision(patch) {
+    return {
+      ...decision,
+      ...patch,
+      recommended_action: "ESCALATE_TO_ADMIN",
+      recovery_probability: 0,
+    };
+  }
+
+  if (
+    decision.recommended_action === "TRIGGER_AI_VOICE_CALL" &&
+    !isVoiceCallEligible(invoice)
+  ) {
+    return {
+      allowed: false,
+      decision: blockedEscalationDecision({
+        generated_message: "Voice call eligibility not met — escalating to admin.",
+      }),
+      status: "BLOCKED_BY_GUARDRAIL",
+      guardrailReason:
+        "TRIGGER_AI_VOICE_CALL requires amount > ₹50,000 with 30+ days overdue, or prior ignored WhatsApp reminders",
+    };
+  }
+
+  if (invoice.suspectedFraud && decision.recommended_action === "TRIGGER_AI_VOICE_CALL") {
+    return {
+      allowed: false,
+      decision: blockedEscalationDecision({
+        generated_message: "Voice outreach blocked on fraud-flagged invoice.",
+      }),
+      status: "BLOCKED_BY_GUARDRAIL",
+      guardrailReason: "Voice call not allowed when suspectedFraud is true",
+    };
+  }
+
   if (decision.confidence_score < CONFIDENCE_THRESHOLD) {
     return {
       allowed: false,
-      decision: {
-        ...decision,
-        recommended_action: "ESCALATE_TO_ADMIN",
+      decision: blockedEscalationDecision({
         generated_message: `Low confidence (${decision.confidence_score}) — automated outreach halted.`,
-      },
+      }),
       status: "BLOCKED_BY_GUARDRAIL",
       guardrailReason: `confidence_score ${decision.confidence_score} < ${CONFIDENCE_THRESHOLD}`,
     };
@@ -143,6 +215,7 @@ async function processInvoice(invoice) {
       recommended_action: "ESCALATE_TO_ADMIN",
       generated_message: `Max retries (${MAX_RETRIES}) exhausted for ${invoice.invoiceId}.`,
       confidence_score: 1,
+      recovery_probability: 0,
       reasoning: "Hard guardrail: automated recovery halted after max retries.",
     };
     const guardrailReason = `retryCount ${invoice.retryCount} >= MAX_RETRIES ${MAX_RETRIES}`;
@@ -156,6 +229,7 @@ async function processInvoice(invoice) {
       aiReasoning: decision.reasoning,
       executedAction: "ESCALATE_TO_ADMIN",
       confidenceScore: decision.confidence_score,
+      recoveryProbability: decision.recovery_probability ?? null,
       status: "BLOCKED_BY_GUARDRAIL",
       generatedMessage: decision.generated_message,
       rootCause: decision.root_cause,
@@ -184,6 +258,7 @@ async function processInvoice(invoice) {
       aiReasoning: `AI call failed: ${err.message}`,
       executedAction: "ESCALATE_TO_ADMIN",
       confidenceScore: 0,
+      recoveryProbability: null,
       status: "BLOCKED_BY_GUARDRAIL",
       generatedMessage: "AI provider error — escalating.",
       rootCause: "AI provider failure",
@@ -210,8 +285,18 @@ async function processInvoice(invoice) {
   const mayOutreach =
     gated.allowed || action === "ESCALATE_TO_ADMIN" || action === "PAUSE_PROMISE_TO_PAY";
 
+  let outboundMessage = gated.decision.generated_message;
+  let delivery = null;
+
   if (mayOutreach) {
-    const delivery = await executeAction(action, invoice, gated.decision.generated_message);
+    outboundMessage = await enrichOutboundMessage(
+      action,
+      invoice,
+      gated.decision.generated_message,
+      gated.allowed
+    );
+
+    delivery = await executeAction(action, invoice, outboundMessage);
 
     if (gated.allowed && action === "RETRY_CARD") {
       invoice.retryCount = Math.min(MAX_RETRIES, (invoice.retryCount || 0) + 1);
@@ -222,12 +307,16 @@ async function processInvoice(invoice) {
         ? "WHATSAPP"
         : action === "SEND_PAYMENT_LINK"
           ? "EMAIL"
-          : "SYSTEM";
+          : action === "TRIGGER_AI_VOICE_CALL"
+            ? "PHONE"
+            : "SYSTEM";
 
     const deliveryNote =
       action === "SEND_WHATSAPP_REMINDER"
         ? ` | WA:${delivery.mode}${delivery.ok ? "" : ":fail"} ${delivery.detail || ""}`
-        : "";
+        : action === "TRIGGER_AI_VOICE_CALL"
+          ? ` | Voice:${delivery.mode}${delivery.ok ? "" : ":fail"} ${delivery.detail || ""}`
+          : "";
 
     await appendHistory(
       invoice,
@@ -242,19 +331,25 @@ async function processInvoice(invoice) {
     aiReasoning: gated.decision.reasoning,
     executedAction: action,
     confidenceScore: gated.decision.confidence_score,
+    recoveryProbability: gated.decision.recovery_probability ?? null,
     status: gated.status,
-    generatedMessage: gated.decision.generated_message,
+    generatedMessage: outboundMessage || gated.decision.generated_message,
     rootCause: gated.decision.root_cause,
     guardrailReason: gated.guardrailReason,
   });
+
+  const sentMessage = mayOutreach ? outboundMessage : gated.decision.generated_message;
 
   return {
     invoiceId: invoice.invoiceId,
     executedAction: action,
     status: gated.status,
     confidenceScore: gated.decision.confidence_score,
+    recoveryProbability: gated.decision.recovery_probability ?? null,
     rootCause: gated.decision.root_cause,
     guardrailReason: gated.guardrailReason,
+    generatedMessage: sentMessage,
+    delivery: mayOutreach ? delivery : null,
     auditId: audit._id,
     source,
   };

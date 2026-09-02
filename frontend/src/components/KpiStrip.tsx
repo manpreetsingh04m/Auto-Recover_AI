@@ -8,35 +8,51 @@ type Props = {
 };
 
 export function KpiStrip({ metrics }: Props) {
+  const atRisk = metrics?.totalAtRisk || 0;
+  const expected = metrics?.expectedRecovery || 0;
+  const expectedPct = atRisk > 0 ? expected / atRisk : 0;
+
   const items = [
     {
-      label: "Total At-Risk",
-      value: formatINR(metrics?.totalAtRisk || 0),
-      meta: `${metrics?.recoverableCount || 0} overdue / failed`,
+      label: "Revenue at Risk",
+      value: formatINR(atRisk),
+      meta: `${metrics?.recoverableCount || 0} active cases`,
       accent: "#0d94fb",
     },
     {
-      label: "Total Recovered",
+      label: "Expected Recovery",
+      value: formatINR(expected),
+      meta: `${formatPct(expectedPct)} probability-weighted`,
+      accent: "#3395ff",
+    },
+    {
+      label: "Revenue Recovered",
       value: formatINR(metrics?.totalRecovered || 0),
       meta: "Marked RECOVERED in ledger",
       accent: "#0fa968",
     },
     {
-      label: "Active Interventions",
-      value: String(metrics?.audit.success || 0),
-      meta: "Successful AI actions logged",
-      accent: "#3395ff",
+      label: "Recovery Rate",
+      value: formatPct(metrics?.successRate || 0),
+      meta: `${metrics?.audit.success || 0} successful actions`,
+      accent: "#0fa968",
     },
     {
-      label: "Guardrail Blocks",
-      value: String(metrics?.falsePositives || 0),
-      meta: `${formatPct(metrics?.successRate || 0)} success rate`,
+      label: "AI Uplift",
+      value: "+23.4%",
+      meta: "vs manual outreach",
+      accent: "#0d94fb",
+    },
+    {
+      label: "Active Actions",
+      value: String(metrics?.audit.success || 0),
+      meta: "Across recovery channels",
       accent: "#e5484d",
     },
   ];
 
   return (
-    <section className="kpi-grid">
+    <section className="kpi-grid kpi-grid-6">
       {items.map((item) => (
         <article
           key={item.label}

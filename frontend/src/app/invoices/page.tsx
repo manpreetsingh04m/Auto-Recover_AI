@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { AuditLog, Invoice } from "@/lib/types";
 import { formatINR } from "@/lib/format";
 import { AuthGate } from "@/components/AuthGate";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 import { AddInvoiceModal } from "@/components/AddInvoiceModal";
 import { InvoiceDetailModal } from "@/components/InvoiceDetailModal";
 
@@ -71,8 +72,7 @@ export default function InvoicesPage() {
 
   return (
     <AuthGate>
-      <div className="app-shell">
-        <Sidebar />
+      <AppShell>
         <main className="main">
           <header className="topbar">
             <div>
@@ -145,6 +145,7 @@ export default function InvoicesPage() {
                     <th>Method</th>
                     <th>Retries</th>
                     <th>Flags</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,6 +187,16 @@ export default function InvoicesPage() {
                         ) : (
                           <span className="muted">—</span>
                         )}
+                      </td>
+                      <td>
+                        <Link
+                          href={`/recovery/${inv.invoiceId}`}
+                          className="btn btn-secondary"
+                          style={{ padding: "5px 10px", fontSize: "0.78rem" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Recover
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -234,7 +245,7 @@ export default function InvoicesPage() {
           onClose={() => setModalOpen(false)}
           onSubmit={handleCreate}
         />
-      </div>
+      </AppShell>
     </AuthGate>
   );
 }

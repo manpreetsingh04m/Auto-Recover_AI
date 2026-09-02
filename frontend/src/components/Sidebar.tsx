@@ -4,49 +4,58 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { clearSession, getUser } from "@/lib/auth";
+import { useSidebar } from "@/components/SidebarContext";
 
-function OverviewIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 10.5V20h6v-9.5H4Zm10 0V20h6v-9.5h-6ZM4 4v4.5h16V4H4Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+function NavIcon({ name }: { name: string }) {
+  const icons: Record<string, React.ReactNode> = {
+    dashboard: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="3" width="8" height="5" rx="2" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="13" y="10" width="8" height="11" rx="2" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    ),
+    recovery: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M4 7h16M4 12h10M4 17h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="19" cy="17" r="3" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    ),
+    invoices: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M7 4h10l3 3v13H7V4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M17 4v3h3M9 11h6M9 15h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+    agent: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M12 3a3 3 0 0 1 3 3v2H9V6a3 3 0 0 1 3-3z" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="5" y="8" width="14" height="10" rx="3" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M10 14h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+    conversations: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M5 6h14v9H9l-4 3V6z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+    audit: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M8 6h8M8 10h8M8 14h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    ),
+    profile: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M5 20c1.5-3 4-4.5 7-4.5s5.5 1.5 7 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+  };
 
-function InvoicesIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 3h8l4 4v14H7V3Zm8 1.5V8h3.5L15 4.5ZM9 11h8v1.5H9V11Zm0 4h8v1.5H9V15Zm0 4h5V20.5H9V19Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function AuditIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 1.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Zm-.75 3h1.5v5.25l3.5 2.1-.75 1.25L11.25 13V7.5Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function ProfileIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 1.5c-3.3 0-6 2.1-6 4.75V20h12v-1.75c0-2.65-2.7-4.75-6-4.75Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
+  return <span className="nav-icon">{icons[name] || icons.dashboard}</span>;
 }
 
 function SidebarInner() {
@@ -55,6 +64,7 @@ function SidebarInner() {
   const router = useRouter();
   const user = getUser();
   const tab = searchParams.get("tab");
+  const { collapsed, toggleCollapsed, closeMobile } = useSidebar();
 
   function logout() {
     clearSession();
@@ -64,30 +74,51 @@ function SidebarInner() {
   const items = [
     {
       href: "/",
-      label: "Overview",
-      hint: "KPIs & recovery",
-      icon: <OverviewIcon />,
+      label: "Dashboard",
+      hint: "KPIs & overview",
+      icon: "dashboard",
       active: pathname === "/" && tab !== "audit",
+    },
+    {
+      href: "/recovery",
+      label: "Recovery Queue",
+      hint: "Priority execute",
+      icon: "recovery",
+      active: pathname.startsWith("/recovery"),
     },
     {
       href: "/invoices",
       label: "Invoices",
       hint: "Full ledger",
-      icon: <InvoicesIcon />,
+      icon: "invoices",
       active: pathname.startsWith("/invoices"),
+    },
+    {
+      href: "/agent",
+      label: "AI Agent",
+      hint: "Live voice calls",
+      icon: "agent",
+      active: pathname.startsWith("/agent"),
+    },
+    {
+      href: "/conversations",
+      label: "Conversations",
+      hint: "Call transcripts",
+      icon: "conversations",
+      active: pathname.startsWith("/conversations"),
     },
     {
       href: "/?tab=audit",
       label: "AI Audit Trail",
-      hint: "ATS decisions log",
-      icon: <AuditIcon />,
+      hint: "Decision log",
+      icon: "audit",
       active: pathname === "/" && tab === "audit",
     },
     {
       href: "/profile",
       label: "Profile",
       hint: "Merchant details",
-      icon: <ProfileIcon />,
+      icon: "profile",
       active: pathname.startsWith("/profile"),
     },
   ];
@@ -96,14 +127,31 @@ function SidebarInner() {
   const displayName = user?.businessName || user?.name || "Merchant";
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sidebar-top">
-        <div className="brand">
-          <div className="brand-mark">AR</div>
-          <div className="brand-copy">
-            <strong>Auto-Recover</strong>
-            <span>Revenue Recovery</span>
+        <div className="brand-row">
+          <div className="brand">
+            <div className="brand-mark">RA</div>
+            <div className="brand-copy">
+              <strong>Revive AI</strong>
+              <span>Autonomous Recovery</span>
+            </div>
           </div>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              {collapsed ? (
+                <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              ) : (
+                <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              )}
+            </svg>
+          </button>
         </div>
 
         <div className="nav-label">Workspace</div>
@@ -113,8 +161,10 @@ function SidebarInner() {
               key={item.href}
               href={item.href}
               className={`nav-item ${item.active ? "active" : ""}`}
+              title={collapsed ? item.label : undefined}
+              onClick={closeMobile}
             >
-              <span className="nav-icon">{item.icon}</span>
+              <NavIcon name={item.icon} />
               <span className="nav-text">
                 <span className="nav-title">{item.label}</span>
                 <span className="nav-hint">{item.hint}</span>
@@ -125,19 +175,28 @@ function SidebarInner() {
       </div>
 
       <div className="sidebar-foot">
-        <Link href="/profile" className="sidebar-user sidebar-user-link">
+        <div className="sidebar-guard" title="Revive Agent online">
+          <span className="sidebar-guard-dot" />
+          <span className="sidebar-guard-text">Revive Agent online · Monitoring accounts</span>
+        </div>
+        <Link
+          href="/profile"
+          className="sidebar-user sidebar-user-link"
+          title={collapsed ? displayName : undefined}
+          onClick={closeMobile}
+        >
           <div className="sidebar-avatar">{initial}</div>
           <div className="sidebar-user-meta">
             <strong>{displayName}</strong>
             <span>{user?.email || "merchant@autorecover.ai"}</span>
           </div>
         </Link>
-        <div className="sidebar-guard">
-          <span className="sidebar-guard-dot" />
-          Guardrails on · confidence ≥ 0.85
-        </div>
-        <button type="button" className="btn-logout" onClick={logout}>
-          Log out
+        <button type="button" className="btn-logout" onClick={logout} title="Log out">
+          <svg className="btn-logout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M14 12H3m0 0l3-3M3 12l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span className="btn-logout-text">Log out</span>
         </button>
       </div>
     </aside>
@@ -150,10 +209,10 @@ export function Sidebar() {
       fallback={
         <aside className="sidebar">
           <div className="brand">
-            <div className="brand-mark">AR</div>
+            <div className="brand-mark">RA</div>
             <div className="brand-copy">
-              <strong>Auto-Recover</strong>
-              <span>Revenue Recovery</span>
+              <strong>Revive AI</strong>
+              <span>Autonomous Recovery</span>
             </div>
           </div>
         </aside>

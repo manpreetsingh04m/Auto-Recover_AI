@@ -9,6 +9,7 @@ const auditLogSchema = new mongoose.Schema(
     aiReasoning: { type: String, required: true },
     executedAction: { type: String, enum: RECOVERY_ACTIONS, required: true },
     confidenceScore: { type: Number, min: 0, max: 1, default: null },
+    recoveryProbability: { type: Number, min: 0, max: 100, default: null },
     status: { type: String, enum: AUDIT_STATUSES, required: true },
     generatedMessage: { type: String, default: null },
     rootCause: { type: String, default: null },

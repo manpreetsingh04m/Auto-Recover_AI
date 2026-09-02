@@ -1,7 +1,7 @@
 "use client";
 
 import type { AuditLog } from "@/lib/types";
-import { formatTime, shortAction } from "@/lib/format";
+import { formatTime, recoveryBadge, shortAction } from "@/lib/format";
 
 type Props = {
   logs: AuditLog[];
@@ -52,6 +52,7 @@ export function AuditTable({
               <th>Time</th>
               <th>Invoice</th>
               <th>Action</th>
+              <th>Recovery</th>
               <th>Confidence</th>
               <th>Status</th>
               <th>Reasoning</th>
@@ -60,44 +61,55 @@ export function AuditTable({
           <tbody>
             {logs.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="empty">No audit events for this filter.</div>
                 </td>
               </tr>
             ) : (
-              logs.map((log) => (
-                <tr key={log._id}>
-                  <td className="muted">{formatTime(log.timestamp)}</td>
-                  <td className="mono">{log.invoiceId}</td>
-                  <td>
-                    <span className="pill action">
-                      {shortAction(log.executedAction)}
-                    </span>
-                  </td>
-                  <td className="mono">
-                    {log.confidenceScore == null
-                      ? "—"
-                      : log.confidenceScore.toFixed(2)}
-                  </td>
-                  <td>
-                    <span
-                      className={`pill ${
-                        log.status === "SUCCESS" ? "success" : "blocked"
-                      }`}
-                    >
-                      {log.status === "SUCCESS" ? "SUCCESS" : "BLOCKED"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="reason">
-                      <strong>{log.rootCause || "—"}</strong>
-                      <div className="muted" style={{ marginTop: 4 }}>
-                        {log.guardrailReason || log.aiReasoning}
+              logs.map((log) => {
+                const recovery = recoveryBadge(log.recoveryProbability);
+                return (
+                  <tr key={log._id}>
+                    <td className="muted">{formatTime(log.timestamp)}</td>
+                    <td className="mono">{log.invoiceId}</td>
+                    <td>
+                      <span className="pill action">
+                        {shortAction(log.executedAction)}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`pill recovery ${recovery.className}`}
+                        title="Predicted recovery probability"
+                      >
+                        {recovery.emoji} {recovery.label}
+                      </span>
+                    </td>
+                    <td className="mono">
+                      {log.confidenceScore == null
+                        ? "—"
+                        : log.confidenceScore.toFixed(2)}
+                    </td>
+                    <td>
+                      <span
+                        className={`pill ${
+                          log.status === "SUCCESS" ? "success" : "blocked"
+                        }`}
+                      >
+                        {log.status === "SUCCESS" ? "SUCCESS" : "BLOCKED"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="reason">
+                        <strong>{log.rootCause || "—"}</strong>
+                        <div className="muted" style={{ marginTop: 4 }}>
+                          {log.guardrailReason || log.aiReasoning}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
