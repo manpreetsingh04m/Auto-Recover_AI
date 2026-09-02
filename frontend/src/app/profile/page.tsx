@@ -127,7 +127,7 @@ function ProfileInner() {
             <h1>Merchant profile</h1>
             <p>
               Saved in MongoDB on the User document. AI outreach uses your preferred
-              language; ATS (AI Audit Trail) stays on Overview → Audit.
+              language.
             </p>
           </div>
         </header>
@@ -262,19 +262,6 @@ function ProfileInner() {
             </div>
           </form>
         )}
-
-        <div className="panel ats-note">
-          <h2 style={{ marginTop: 0, fontSize: "1rem", color: "var(--rzp-navy)" }}>
-            Where ATS appears
-          </h2>
-          <p className="muted" style={{ marginBottom: 0 }}>
-            <strong>ATS = AI Audit Trail</strong> — every recovery decision (action,
-            confidence, guardrail block) is written to the <code>AuditLog</code>{" "}
-            collection. In the UI: sidebar <em>AI Audit Trail</em> (
-            <code>/?tab=audit</code>), the audit table on Overview, and recent audits
-            inside each invoice detail modal.
-          </p>
-        </div>
       </main>
     </div>
   );

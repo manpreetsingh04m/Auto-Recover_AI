@@ -8,3 +8,4 @@ build/
 .next/
 coverage/
 frontend/.env.local
+.vercel

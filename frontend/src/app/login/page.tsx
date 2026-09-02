@@ -39,9 +39,6 @@ export default function LoginPage() {
           </div>
         </div>
         <h1>Welcome back</h1>
-        <p className="muted">
-          JWT-protected console for AI revenue recovery.
-        </p>
         {error && <div className="toast error">{error}</div>}
         <div className="field" style={{ marginTop: 14 }}>
           <label htmlFor="email">Email</label>
