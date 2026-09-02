@@ -214,6 +214,59 @@ button {
   gap: 10px;
 }
 
+.sidebar-user-link {
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  padding: 4px;
+  margin: -4px;
+  transition: background 140ms ease;
+}
+
+.sidebar-user-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(1, 38, 82, 0.08);
+}
+
+.profile-banner strong {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--rzp-navy);
+}
+
+.profile-banner .muted {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.86rem;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ats-note {
+  margin-top: 16px;
+}
+
+.ats-note code {
+  font-size: 0.85em;
+}
+
 .sidebar-avatar {
   width: 36px;
   height: 36px;

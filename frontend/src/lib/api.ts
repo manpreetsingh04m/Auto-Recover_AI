@@ -1,4 +1,5 @@
 import type { AuditLog, BatchResult, Invoice, Metrics, Paginated } from "./types";
+import type { AuthUser } from "./auth";
 import { clearSession, getToken } from "./auth";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:4000").replace(
@@ -46,7 +47,7 @@ export const api = {
     request<{
       ok: boolean;
       token: string;
-      user: { id: string; name: string; email: string; role: string };
+      user: AuthUser;
     }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
@@ -54,8 +55,13 @@ export const api = {
   me: () =>
     request<{
       ok: boolean;
-      user: { id: string; name: string; email: string; role: string };
+      user: AuthUser;
     }>("/api/auth/me"),
+  updateProfile: (payload: Partial<AuthUser> & { name: string }) =>
+    request<{ ok: boolean; user: AuthUser }>("/api/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   metrics: () => request<Metrics>("/api/metrics"),
   auditLogs: (page = 1, limit = 15, status?: string) => {
     const qs = new URLSearchParams({

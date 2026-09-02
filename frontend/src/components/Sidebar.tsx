@@ -38,6 +38,17 @@ function AuditIcon() {
   );
 }
 
+function ProfileIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 1.5c-3.3 0-6 2.1-6 4.75V20h12v-1.75c0-2.65-2.7-4.75-6-4.75Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 function SidebarInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -68,13 +79,21 @@ function SidebarInner() {
     {
       href: "/?tab=audit",
       label: "AI Audit Trail",
-      hint: "Decisions log",
+      hint: "ATS decisions log",
       icon: <AuditIcon />,
       active: pathname === "/" && tab === "audit",
+    },
+    {
+      href: "/profile",
+      label: "Profile",
+      hint: "Merchant details",
+      icon: <ProfileIcon />,
+      active: pathname.startsWith("/profile"),
     },
   ];
 
   const initial = (user?.name || user?.email || "M").charAt(0).toUpperCase();
+  const displayName = user?.businessName || user?.name || "Merchant";
 
   return (
     <aside className="sidebar">
@@ -106,13 +125,13 @@ function SidebarInner() {
       </div>
 
       <div className="sidebar-foot">
-        <div className="sidebar-user">
+        <Link href="/profile" className="sidebar-user sidebar-user-link">
           <div className="sidebar-avatar">{initial}</div>
           <div className="sidebar-user-meta">
-            <strong>{user?.name || "Merchant"}</strong>
+            <strong>{displayName}</strong>
             <span>{user?.email || "merchant@autorecover.ai"}</span>
           </div>
-        </div>
+        </Link>
         <div className="sidebar-guard">
           <span className="sidebar-guard-dot" />
           Guardrails on · confidence ≥ 0.85

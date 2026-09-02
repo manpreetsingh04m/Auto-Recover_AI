@@ -163,17 +163,32 @@ async function seed() {
 
   const email = "merchant@autorecover.ai";
   const password = "Recover@123";
+  const profileDefaults = {
+    name: "Demo Merchant",
+    businessName: "Auto-Recover Demo Pvt Ltd",
+    phone: "+919876543210",
+    gstin: "27AABCU9603R1ZM",
+    address: "12th Floor, BKC Trade Centre",
+    city: "Mumbai",
+    state: "Maharashtra",
+    pincode: "400051",
+    preferredLanguage: "Hinglish",
+    whatsappBusinessNumber: "+919876543210",
+  };
+
   let user = await User.findOne({ email });
   if (!user) {
     user = await User.create({
-      name: "Demo Merchant",
+      ...profileDefaults,
       email,
       passwordHash: await User.hashPassword(password),
       role: "merchant",
     });
     console.log(`[seed] created merchant user ${email} / ${password}`);
   } else {
-    console.log(`[seed] merchant user already exists: ${email}`);
+    Object.assign(user, profileDefaults);
+    await user.save();
+    console.log(`[seed] merchant user refreshed: ${email}`);
   }
 
   const counts = docs.reduce((acc, inv) => {

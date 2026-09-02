@@ -6,6 +6,17 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
+  businessName?: string;
+  phone?: string;
+  gstin?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  preferredLanguage?: "Hinglish" | "English";
+  whatsappBusinessNumber?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export function getToken(): string | null {
@@ -26,6 +37,10 @@ export function getUser(): AuthUser | null {
 
 export function setSession(token: string, user: AuthUser) {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function updateStoredUser(user: AuthUser) {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
