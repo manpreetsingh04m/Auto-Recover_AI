@@ -218,6 +218,65 @@ frontend/src/
 
 ---
 
+## Deploy to Vercel
+
+Use **two Vercel projects** from this monorepo (backend + frontend).
+
+### 1. Backend (`backend/`)
+
+```bash
+cd backend
+vercel login
+vercel          # first deploy — note the production URL, e.g. https://auto-recover-api.vercel.app
+```
+
+**Environment variables** (Vercel dashboard → Project → Settings → Environment Variables):
+
+| Variable | Required |
+|----------|----------|
+| `MONGODB_URI` | Yes (MongoDB Atlas) |
+| `JWT_SECRET` | Yes |
+| `GROQ_API_KEY` | For AI |
+| `AI_PROVIDER` | `groq` |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` |
+| `CONFIDENCE_THRESHOLD` | `0.85` |
+| `MAX_RETRIES` | `3` |
+
+MongoDB Atlas → **Network Access** → allow `0.0.0.0/0` (or Vercel IPs) so serverless can connect.
+
+Seed production DB once from your machine:
+
+```bash
+MONGODB_URI="your-atlas-uri" npm run seed
+```
+
+**Note:** `POST /api/run-batch` can run 1–3 minutes. Vercel Hobby has a **10s** function limit — batch may timeout. Pro plan + `maxDuration: 300` in `backend/vercel.json` is recommended for demos.
+
+### 2. Frontend (`frontend/`)
+
+```bash
+cd frontend
+vercel
+```
+
+Set:
+
+```bash
+NEXT_PUBLIC_API_URL=https://your-backend-url.vercel.app
+```
+
+Redeploy frontend after the backend URL is known.
+
+### 3. Verify
+
+```bash
+curl https://your-backend-url.vercel.app/health
+```
+
+Open the frontend URL → login → dashboard.
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |

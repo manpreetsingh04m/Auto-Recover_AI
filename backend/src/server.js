@@ -18,6 +18,16 @@ app.use(
 );
 app.use(express.json());
 
+app.use(async (req, res, next) => {
+  try {
+    await connectDb();
+    next();
+  } catch (err) {
+    console.error("[db] connection failed", err.message);
+    res.status(503).json({ error: "Database unavailable", detail: err.message });
+  }
+});
+
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
@@ -48,4 +58,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, start };
+module.exports = app;
