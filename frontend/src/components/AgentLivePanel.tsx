@@ -121,7 +121,7 @@ export function AgentLivePanel({ invoice, insights }: Props) {
         {phase === "ringing" && <p className="muted">Dialling {name}…</p>}
         {visibleLines.map((line, i) => (
           <div key={`${line.speaker}-${i}`} className={`agent-line agent-line-${line.speaker}`}>
-            <span>{line.speaker === "agent" ? "Revive AI" : line.speaker === "customer" ? name : "System"}</span>
+            <span>{line.speaker === "agent" ? "Razorpay Revive AI" : line.speaker === "customer" ? name : "System"}</span>
             <p>{line.text}</p>
           </div>
         ))}

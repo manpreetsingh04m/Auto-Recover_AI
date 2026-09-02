@@ -47,7 +47,7 @@ function AppShellFrame({ children }: { children: React.ReactNode }) {
             </button>
             <div className="mobile-topbar-brand">
               <span className="mobile-topbar-mark">RA</span>
-              <strong>Revive AI</strong>
+              <strong>Razorpay Revive AI</strong>
             </div>
           </header>
           {children}

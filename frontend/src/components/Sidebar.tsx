@@ -133,7 +133,7 @@ function SidebarInner() {
           <div className="brand">
             <div className="brand-mark">RA</div>
             <div className="brand-copy">
-              <strong>Revive AI</strong>
+              <strong>Razorpay Revive AI</strong>
               <span>Autonomous Recovery</span>
             </div>
           </div>
@@ -211,7 +211,7 @@ export function Sidebar() {
           <div className="brand">
             <div className="brand-mark">RA</div>
             <div className="brand-copy">
-              <strong>Revive AI</strong>
+              <strong>Razorpay Revive AI</strong>
               <span>Autonomous Recovery</span>
             </div>
           </div>

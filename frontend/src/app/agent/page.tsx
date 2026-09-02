@@ -40,7 +40,7 @@ function AgentPageInner() {
       <main className="main">
         <header className="topbar">
           <div>
-            <p className="section-kicker">Revive AI voice agent & real-time intelligence</p>
+            <p className="section-kicker">Razorpay Revive AI voice agent & real-time intelligence</p>
             <h1>Live voice agent</h1>
             <p>
               Autonomous voice recovery with live transcript, promise-to-pay capture, and

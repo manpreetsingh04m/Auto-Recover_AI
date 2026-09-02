@@ -130,7 +130,7 @@ export function VoiceCallScreen({
           <div className="voice-ringing">
             <div className="voice-ring-wave" />
             <div className="voice-ring-wave delay" />
-            <p>Connecting Revive AI voice agent via Bland.ai…</p>
+            <p>Connecting Razorpay Revive AI voice agent via Bland.ai…</p>
           </div>
         )}
 
@@ -143,7 +143,7 @@ export function VoiceCallScreen({
               >
                 <span className="voice-speaker">
                   {line.speaker === "agent"
-                    ? "Revive AI"
+                    ? "Razorpay Revive AI"
                     : line.speaker === "customer"
                       ? clientName.split(" ")[0]
                       : "System"}

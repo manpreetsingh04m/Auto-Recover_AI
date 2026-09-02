@@ -150,7 +150,7 @@ function buildDemoCallScript(invoice) {
     },
     {
       speaker: "agent",
-      text: `Namaste ${name}, main Revive AI se bol rahi hoon. Aapka invoice ${invoiceId} ke liye ₹${amount} payment pending hai.`,
+      text: `Namaste ${name}, main Razorpay Revive AI se bol rahi hoon. Aapka invoice ${invoiceId} ke liye ₹${amount} payment pending hai.`,
       delayMs: 3500,
     },
     {

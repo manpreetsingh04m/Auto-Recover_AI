@@ -9,7 +9,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Revive AI | Merchant Dashboard",
+  title: "Razorpay Revive AI | Merchant Dashboard",
   description: "Autonomous AI revenue recovery for B2B merchants",
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],

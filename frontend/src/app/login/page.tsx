@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div className="brand" style={{ marginBottom: 18 }}>
           <div className="brand-mark">AR</div>
           <div className="brand-copy">
-            <strong style={{ color: "var(--rzp-navy)" }}>Revive AI</strong>
+            <strong style={{ color: "var(--rzp-navy)" }}>Razorpay Revive AI</strong>
             <span style={{ color: "var(--rzp-muted)" }}>Merchant sign in</span>
           </div>
         </div>

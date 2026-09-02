@@ -1,6 +1,6 @@
-# Revive AI (Auto-Recover AI)
+# Razorpay Revive AI
 
-**Revive AI** — autonomous, bounded **AI revenue recovery** for B2B merchants. Built for the **Razorpay Buildathon**.
+**Razorpay Revive AI** — autonomous, bounded **AI revenue recovery** for B2B merchants. Built for the **Razorpay Buildathon**.
 
 Detects overdue invoices and failed payments, diagnoses root cause with an LLM, predicts recovery probability, generates **Razorpay payment links**, and executes only **bounded** recovery actions (WhatsApp, voice fallback, card retry) with Zod validation, confidence guardrails, JWT-protected APIs, and an immutable audit trail.
 
@@ -85,8 +85,8 @@ Merchants lose cash to failed cards, overdue bank transfers, promise-to-pay dela
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/manpreetsingh04m/auto-recover_ai.git
-cd auto-recover_ai
+git clone https://github.com/manpreetsingh04m/razorpay-revive-ai.git
+cd razorpay-revive-ai
 
 # Install Backend
 cd backend && npm install
@@ -230,7 +230,7 @@ Use **two Vercel projects** from this monorepo (backend + frontend).
 ```bash
 cd backend
 vercel login
-vercel          # first deploy — note the production URL, e.g. https://auto-recover-api.vercel.app
+vercel          # first deploy — note the production URL, e.g. https://razorpay-revive-ai-backend.vercel.app
 ```
 
 **Environment variables** (Vercel dashboard → Project → Settings → Environment Variables):
