@@ -2,10 +2,12 @@ import type { AuditLog, BatchResult, Invoice, Metrics, Paginated } from "./types
 import type { AuthUser } from "./auth";
 import { clearSession, getToken } from "./auth";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:4000").replace(
-  /\/$/,
-  ""
-);
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://auto-recover-ai-backend.vercel.app"
+    : "http://127.0.0.1:4000")
+).replace(/\/$/, "");
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
